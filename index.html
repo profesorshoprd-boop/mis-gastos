@@ -47,6 +47,8 @@ h2{font-size:15px;margin:18px 2px 10px;font-weight:700}
 .t1{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .t2{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .amt{font-weight:700;white-space:nowrap}
+.amt.in{color:var(--acc)}
+.big.pos{color:var(--acc)}.big.neg{color:var(--bad)}
 .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--bad-soft);color:var(--bad);margin-left:6px;vertical-align:1px}
 .empty{color:var(--muted);text-align:center;padding:22px 8px;font-size:14px}
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:center;padding:6px 6px calc(6px + env(safe-area-inset-bottom));z-index:5}
@@ -130,24 +132,36 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
       <div class="card"><div class="lbl">Hoy</div><div class="big" id="i-hoy">RD$0</div><div class="sub" id="i-hoyn"></div></div>
       <div class="card"><div class="lbl">% Innecesario</div><div class="big" id="i-inn">0%</div><div class="sub" id="i-innm"></div></div>
     </div>
-    <h2>Últimos gastos</h2>
+    <div class="grid2">
+      <div class="card"><div class="lbl">Ingresos del mes</div><div class="big pos" id="i-ing">RD$0</div><div class="sub" id="i-ingn"></div></div>
+      <div class="card"><div class="lbl">Balance del mes</div><div class="big" id="i-bal">RD$0</div><div class="sub">ingresos − gastos</div></div>
+    </div>
+    <h2>Últimos movimientos</h2>
     <div class="card" id="i-ult"></div>
   </section>
 
   <!-- AGREGAR -->
   <section class="view" id="v-agregar">
     <div class="card">
+      <div class="field"><div class="seg" id="f-tipo"><button data-t="g" class="on">💸 Gasto</button><button data-t="i">💰 Ingreso</button></div></div>
       <div class="field">
         <div class="money"><span>RD$</span><input id="f-monto" type="number" inputmode="decimal" placeholder="0" step="0.01" min="0"></div>
       </div>
-      <div class="field"><label>Categoría</label><div class="chips" id="f-cats"></div></div>
-      <div class="field" id="f-subwrap"><label>Subcategoría</label><div class="chips" id="f-subs"></div></div>
-      <div class="field"><label>¿Era necesario?</label>
-        <div class="seg" id="f-nec"><button data-v="1" class="on yes">Sí, necesario</button><button data-v="0">No, innecesario</button></div>
+      <div id="f-gasto">
+        <div class="field"><label>Categoría</label><div class="chips" id="f-cats"></div></div>
+        <div class="field" id="f-subwrap"><label>Subcategoría</label><div class="chips" id="f-subs"></div></div>
+        <div class="field"><label>¿Era necesario?</label>
+          <div class="seg" id="f-nec"><button data-v="1" class="on yes">Sí, necesario</button><button data-v="0">No, innecesario</button></div>
+        </div>
+      </div>
+      <div id="f-ing" style="display:none">
+        <div class="field"><label>¿De dónde viene?</label><div class="chips" id="f-fuentes"></div></div>
+        <div class="field" id="f-otrowrap" style="display:none"><label>Nombre del ingreso</label>
+          <input type="text" id="f-otro" list="f-otros" placeholder="Ej: venta del celular, préstamo de Juan…"><datalist id="f-otros"></datalist></div>
       </div>
       <div class="grid2">
         <div class="field"><label>Fecha</label><input id="f-fecha" type="date"></div>
-        <div class="field"><label>Pago</label>
+        <div class="field" id="f-metwrap"><label>Pago</label>
           <select id="f-metodo"><option>Efectivo</option><option>Tarjeta</option><option>Transferencia</option></select>
         </div>
       </div>
@@ -160,6 +174,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
   <section class="view" id="v-historial">
     <div class="toolbar">
       <input type="month" id="h-mes">
+      <select id="h-tipo"><option value="">Todo</option><option value="g">Gastos</option><option value="i">Ingresos</option></select>
       <select id="h-cat"><option value="">Todas</option></select>
     </div>
     <div class="card" style="padding:12px 16px"><div style="display:flex;justify-content:space-between"><span class="muted" id="h-count"></span><b id="h-total"></b></div></div>
@@ -170,9 +185,14 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
   <section class="view" id="v-stats">
     <div class="toolbar"><input type="month" id="s-mes"></div>
     <div class="grid2">
-      <div class="card"><div class="lbl">Total</div><div class="big" id="s-total">RD$0</div><div class="sub" id="s-n"></div></div>
+      <div class="card"><div class="lbl">Gastos</div><div class="big" id="s-total">RD$0</div><div class="sub" id="s-n"></div></div>
       <div class="card"><div class="lbl">Promedio diario</div><div class="big" id="s-prom">RD$0</div><div class="sub" id="s-comp"></div></div>
     </div>
+    <div class="grid2">
+      <div class="card"><div class="lbl">Ingresos</div><div class="big pos" id="s-ing">RD$0</div><div class="sub" id="s-ingn"></div></div>
+      <div class="card"><div class="lbl">Balance</div><div class="big" id="s-bal">RD$0</div><div class="sub">ingresos − gastos</div></div>
+    </div>
+    <div class="card"><div class="lbl">Ingresos por fuente</div><div id="s-fuentes"></div></div>
     <div class="card">
       <div class="lbl">Necesario vs innecesario</div>
       <div class="hbar"><div class="top"><b>Necesario</b><span id="s-nec"></span></div><div class="bar"><i id="s-necb"></i></div></div>
@@ -188,7 +208,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
         <div class="field"><label>Desde</label><input type="date" id="r-desde"></div>
         <div class="field"><label>Hasta</label><input type="date" id="r-hasta"></div>
       </div>
-      <button class="btn ghost" id="r-btn">Descargar reporte (Excel / CSV)</button>
+      <button class="btn ghost" id="r-btn">Descargar reporte de gastos e ingresos (Excel)</button>
     </div>
   </section>
 
@@ -209,6 +229,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
         <button class="btn sm" id="a-add">Agregar</button>
       </div>
     </div>
+    <h2>Fuentes de ingreso</h2>
+    <div class="card"><div id="a-fuentes"></div>
+      <div class="inline" style="margin-top:10px"><input type="text" id="a-fnombre" placeholder="Nueva fuente"><button class="btn sm" id="a-fadd">Agregar</button></div>
+      <p class="muted" style="margin:10px 0 0">En «Otros» escribes el nombre cada vez, y en Estadísticas te sale cada uno por separado.</p></div>
     <h2>Respaldo</h2>
     <div class="card">
       <p class="muted" style="margin:0 0 12px">Tus gastos se guardan solo en este celular. Descarga un respaldo de vez en cuando (por ejemplo cada mes) y guárdalo en tu WhatsApp o Google Drive. Si cambias de celular o borras el navegador, lo cargas aquí.</p>
@@ -242,7 +266,8 @@ const DEFAULT_CATS=[
  {n:"Teléfono",e:"📱",subs:["Recarga","Plan"]},
  {n:"Otros",e:"📦",subs:[]}
 ];
-const S={db:null,uid:null,cfg:{cats:DEFAULT_CATS,pres:0},months:{},ready:false,writable:true};
+const DEFAULT_FUENTES=["Saldo ATH","Retiro","Retiro QR","Cele","Otros"];
+const S={db:null,uid:null,cfg:{cats:DEFAULT_CATS,pres:0,fuentes:DEFAULT_FUENTES.slice()},months:{},ing:{},ready:false,writable:true};
 const $=id=>document.getElementById(id);
 const fmt=n=>"RD$"+Math.round(n).toLocaleString("es-DO");
 const fmt2=n=>"RD$"+(+n).toLocaleString("es-DO",{minimumFractionDigits:0,maximumFractionDigits:2});
@@ -258,6 +283,9 @@ const dayLabel=d=>{const t=today();if(d===t)return"Hoy";const y=new Date();y.set
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const catOf=n=>S.cfg.cats.find(c=>c.n===n)||{n:n,e:"📦",subs:[]};
 const itemsOf=m=>(S.months[m]||[]);
+const ingOf=m=>(S.ing[m]||[]);
+const allIng=()=>Object.values(S.ing).flat();
+const fuenteTxt=i=>i.fuente==="Otros"&&i.otro?i.otro:i.fuente;
 const allItems=()=>Object.values(S.months).flat();
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 
@@ -266,10 +294,11 @@ function notice(t){const e=$("notice");e.textContent=t||"";e.classList.toggle("o
 
 /* ---------- guardado en el aparato ---------- */
 const KEY="misgastos_v1";
-function persist(){try{localStorage.setItem(KEY,JSON.stringify({cfg:S.cfg,months:S.months}));$("sync").textContent="✓ Guardado en este aparato"}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify({cfg:S.cfg,months:S.months,ing:S.ing}));$("sync").textContent="✓ Guardado en este aparato"}
   catch(e){notice("No se pudo guardar en este aparato. Revisa que el navegador no esté en modo privado.")}}
 function saveMonth(m){if(!itemsOf(m).length)delete S.months[m];persist()}
 function saveCfg(){persist()}
+function saveIng(m){if(!ingOf(m).length)delete S.ing[m];persist()}
 /* ---------- navigation ---------- */
 let view="inicio";
 function go(v){view=v;document.querySelectorAll(".view").forEach(s=>s.classList.toggle("on",s.id==="v-"+v));
@@ -284,7 +313,14 @@ function rowHTML(it){const c=catOf(it.cat);
    <div class="grow"><div class="t1">${esc(it.sub||it.cat)}${it.inn?'<span class="tag">innecesario</span>':''}</div>
    <div class="t2">${esc([it.sub?it.cat:"",it.nota,it.metodo].filter(Boolean).join(" · "))}</div></div>
    <div class="amt">${fmt2(it.monto)}</div></div>`}
-function bindRows(root){root.querySelectorAll(".row[data-id]").forEach(r=>r.onclick=()=>openEdit(r.dataset.m,r.dataset.id))}
+function ingRowHTML(it){
+  return `<div class="row" data-id="${it.id}" data-m="${it.fecha.slice(0,7)}" data-k="i" style="cursor:pointer">
+   <div class="ico">💰</div>
+   <div class="grow"><div class="t1">${esc(fuenteTxt(it))}</div>
+   <div class="t2">${esc(["Ingreso",it.fuente==="Otros"?"Otros":"",it.nota].filter(Boolean).join(" · "))}</div></div>
+   <div class="amt in">+${fmt2(it.monto)}</div></div>`}
+const anyRow=it=>it._i?ingRowHTML(it):rowHTML(it);
+function bindRows(root){root.querySelectorAll(".row[data-id]").forEach(r=>r.onclick=()=>r.dataset.k==="i"?openEditIng(r.dataset.m,r.dataset.id):openEdit(r.dataset.m,r.dataset.id))}
 
 function render(){
   if(!S.ready)return;
@@ -306,22 +342,29 @@ function renderInicio(){
   if(p>0){const pct=Math.min(100,tot/p*100);bar.style.display="";bar.classList.toggle("bad",tot>p);bar.firstElementChild.style.width=pct+"%";
     $("i-pres").textContent=tot>p?`Te pasaste ${fmt(tot-p)} del presupuesto de ${fmt(p)}`:`Te quedan ${fmt(p-tot)} de ${fmt(p)} · ${monthName(m)}`}
   else{bar.style.display="none";$("i-pres").textContent=monthName(m)}
-  const ult=allItems().sort((a,b)=>(b.fecha+b.ts).localeCompare(a.fecha+a.ts)).slice(0,6);
-  $("i-ult").innerHTML=ult.length?ult.map(it=>rowHTML(it).replace('<div class="t2">',`<div class="t2">${dayLabel(it.fecha)} · `)).join(""):'<div class="empty">Todavía no hay gastos.<br>Toca <b>＋</b> para registrar el primero.</div>';
+  const ing=ingOf(m),ti=ing.reduce((a,b)=>a+b.monto,0),bal=ti-tot;
+  $("i-ing").textContent=fmt(ti);$("i-ingn").textContent=ing.length+(ing.length===1?" ingreso":" ingresos");
+  $("i-bal").textContent=(bal<0?"−":"")+fmt(Math.abs(bal));$("i-bal").className="big "+(bal<0?"neg":"pos");
+  const ult=allItems().concat(allIng().map(i=>Object.assign({_i:1},i))).sort((a,b)=>(b.fecha+b.ts).localeCompare(a.fecha+a.ts)).slice(0,8);
+  $("i-ult").innerHTML=ult.length?ult.map(it=>anyRow(it).replace('<div class="t2">',`<div class="t2">${dayLabel(it.fecha)} · `)).join(""):'<div class="empty">Todavía no hay movimientos.<br>Toca <b>＋</b> para registrar un gasto o un ingreso.</div>';
   bindRows($("i-ult"));
 }
 function fillCatSelect(sel){const v=sel.value;sel.innerHTML='<option value="">Todas</option>'+S.cfg.cats.map(c=>`<option value="${esc(c.n)}">${esc(c.e+" "+c.n)}</option>`).join("");sel.value=v}
 function renderHist(){
   if(!$("h-mes").value)$("h-mes").value=curMonth();
   fillCatSelect($("h-cat"));
-  const m=$("h-mes").value,cf=$("h-cat").value;
-  let its=itemsOf(m).filter(i=>!cf||i.cat===cf).sort((a,b)=>(b.fecha+b.ts).localeCompare(a.fecha+a.ts));
-  const tot=its.reduce((a,b)=>a+b.monto,0);
-  $("h-count").textContent=its.length+(its.length===1?" gasto":" gastos")+" · "+monthName(m);$("h-total").textContent=fmt2(tot);
-  if(!its.length){$("h-list").innerHTML='<div class="card"><div class="empty">No hay gastos aquí.</div></div>';return}
+  const tp=$("h-tipo").value;$("h-cat").style.display=tp==="i"?"none":"";
+  const m=$("h-mes").value,cf=tp==="i"?"":$("h-cat").value;
+  let gs=tp==="i"?[]:itemsOf(m).filter(i=>!cf||i.cat===cf);
+  let is=(tp==="g"||cf)?[]:ingOf(m).map(i=>Object.assign({_i:1},i));
+  let its=gs.concat(is).sort((a,b)=>(b.fecha+b.ts).localeCompare(a.fecha+a.ts));
+  const tg=gs.reduce((a,b)=>a+b.monto,0),ti=is.reduce((a,b)=>a+b.monto,0);
+  $("h-count").textContent=(tp==="i"?is.length+" ingresos":tp==="g"||cf?gs.length+" gastos":gs.length+" gastos · "+is.length+" ingresos")+" · "+monthName(m);
+  $("h-total").textContent=tp==="i"?"+"+fmt2(ti):tp==="g"||cf?fmt2(tg):"Balance "+(ti-tg<0?"−":"+")+fmt2(Math.abs(ti-tg));
+  if(!its.length){$("h-list").innerHTML='<div class="card"><div class="empty">No hay movimientos aquí.</div></div>';return}
   const g={};its.forEach(i=>(g[i.fecha]=g[i.fecha]||[]).push(i));
-  $("h-list").innerHTML=Object.keys(g).sort().reverse().map(d=>{const s=g[d].reduce((a,b)=>a+b.monto,0);
-    return `<div class="dayh"><span>${dayLabel(d)}</span><span>${fmt2(s)}</span></div><div class="card" style="padding:4px 16px">${g[d].map(rowHTML).join("")}</div>`}).join("");
+  $("h-list").innerHTML=Object.keys(g).sort().reverse().map(d=>{const s=g[d].reduce((a,b)=>a+(b._i?b.monto:-b.monto),0);
+    return `<div class="dayh"><span>${dayLabel(d)}</span><span>${s<0?"−":"+"}${fmt2(Math.abs(s))}</span></div><div class="card" style="padding:4px 16px">${g[d].map(anyRow).join("")}</div>`}).join("");
   bindRows($("h-list"));
 }
 function hbars(map,total,limit){const arr=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,limit||99);
@@ -344,11 +387,16 @@ function renderStats(){
   $("s-daysx").innerHTML=`<span>1</span><span>${Math.ceil(dim/2)}</span><span>${dim}</span>`;
   const bc={},bs={},bm={};its.forEach(i=>{const c=catOf(i.cat);bc[c.e+" "+i.cat]=(bc[c.e+" "+i.cat]||0)+i.monto;
     if(i.sub)bs[i.sub+" ("+i.cat+")"]=(bs[i.sub+" ("+i.cat+")"]||0)+i.monto;bm[i.metodo||"—"]=(bm[i.metodo||"—"]||0)+i.monto});
-  $("s-cats").innerHTML=hbars(bc,tot);$("s-subs").innerHTML=hbars(bs,tot,6);$("s-met").innerHTML=hbars(bm,tot);
+  $("s-cats").innerHTML=hbars(bc,tot);
+  const ing=ingOf(m),ti=ing.reduce((a,b)=>a+b.monto,0),bal=ti-tot,bf={};
+  ing.forEach(i=>{const k=i.fuente==="Otros"?"Otros: "+(i.otro||"sin nombre"):i.fuente;bf[k]=(bf[k]||0)+i.monto});
+  $("s-ing").textContent=fmt(ti);$("s-ingn").textContent=ing.length+" ingresos";
+  $("s-bal").textContent=(bal<0?"−":"")+fmt(Math.abs(bal));$("s-bal").className="big "+(bal<0?"neg":"pos");
+  $("s-fuentes").innerHTML=hbars(bf,ti);$("s-subs").innerHTML=hbars(bs,tot,6);$("s-met").innerHTML=hbars(bm,tot);
   if(!$("r-desde").value){$("r-desde").value=m+"-01";$("r-hasta").value=m+"-"+pad(dim)}
 }
 function renderAjustes(){
-  $("a-pres").value=S.cfg.pres||"";
+  $("a-pres").value=S.cfg.pres||"";renderFuentesAj();
   $("a-cats").innerHTML=S.cfg.cats.map((c,ci)=>`<div class="catrow" style="flex-wrap:wrap">
    <div class="ico">${esc(c.e)}</div><div class="grow t1">${esc(c.n)}</div>
    <button class="x" data-addsub="${ci}" title="Agregar subcategoría">＋</button>
@@ -359,14 +407,32 @@ function renderAjustes(){
   $("a-cats").querySelectorAll("[data-delsub]").forEach(b=>b.onclick=()=>{const[ci,si]=b.dataset.delsub.split(":").map(Number);S.cfg.cats[ci].subs.splice(si,1);saveCfg();renderAjustes()});
   $("a-cats").querySelectorAll("[data-addsub]").forEach(b=>b.onclick=()=>promptBox("Nueva subcategoría para "+S.cfg.cats[+b.dataset.addsub].n,v=>{S.cfg.cats[+b.dataset.addsub].subs.push(v);saveCfg();renderAjustes()}));
 }
+function renderFuentesAj(){
+  $("a-fuentes").innerHTML=S.cfg.fuentes.map((f,i)=>`<div class="catrow"><div class="ico">💰</div><div class="grow t1">${esc(f)}</div>${f==="Otros"?"":`<button class="x" data-delf="${i}">✕</button>`}</div>`).join("");
+  $("a-fuentes").querySelectorAll("[data-delf]").forEach(b=>b.onclick=()=>{const f=S.cfg.fuentes[+b.dataset.delf];
+    confirmBox(`¿Quitar la fuente "${f}"? Los ingresos ya guardados no se borran.`,()=>{S.cfg.fuentes.splice(+b.dataset.delf,1);saveCfg();renderFuentesAj()})});
+}
+$("a-fadd").onclick=()=>{const n=$("a-fnombre").value.trim();if(!n)return;if(S.cfg.fuentes.some(f=>f.toLowerCase()===n.toLowerCase())){toast("Esa fuente ya existe");return}
+  const oi=S.cfg.fuentes.indexOf("Otros");if(oi>=0)S.cfg.fuentes.splice(oi,0,n);else S.cfg.fuentes.push(n);$("a-fnombre").value="";saveCfg();renderFuentesAj();toast("Fuente agregada")};
 $("a-presbtn").onclick=()=>{S.cfg.pres=Math.max(0,+$("a-pres").value||0);saveCfg();toast("Presupuesto guardado")};
 $("a-add").onclick=()=>{const n=$("a-nombre").value.trim();if(!n)return;if(S.cfg.cats.some(c=>c.n.toLowerCase()===n.toLowerCase())){toast("Esa categoría ya existe");return}
   S.cfg.cats.push({n,e:$("a-emoji").value.trim()||"📦",subs:[]});$("a-nombre").value="";$("a-emoji").value="";saveCfg();renderAjustes();toast("Categoría agregada")};
-$("h-mes").onchange=$("h-cat").onchange=renderHist;
+$("h-mes").onchange=$("h-cat").onchange=$("h-tipo").onchange=renderHist;
 $("s-mes").onchange=()=>{$("r-desde").value="";renderStats()};
 
 /* ---------- form ---------- */
-const F={cat:null,sub:"",nec:true,editing:null};
+const F={cat:null,sub:"",nec:true,editing:null,tipo:"g",fuente:null};
+function setTipo(t){F.tipo=t;$("f-tipo").querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));
+  $("f-gasto").style.display=t==="g"?"":"none";$("f-ing").style.display=t==="i"?"":"none";$("f-metwrap").style.display=t==="g"?"":"none";
+  $("f-guardar").textContent=t==="g"?"Guardar gasto":"Guardar ingreso";$("f-nota").placeholder=t==="g"?"Ej: compra del super":"Ej: pago de la semana";renderFuentesForm()}
+$("f-tipo").querySelectorAll("button").forEach(b=>b.onclick=()=>setTipo(b.dataset.t));
+function renderFuentesForm(){
+  $("f-fuentes").innerHTML=S.cfg.fuentes.map(f=>`<button class="chip ${F.fuente===f?"on":""}" data-f="${esc(f)}">${esc(f)}</button>`).join("");
+  $("f-fuentes").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{F.fuente=b.dataset.f;renderFuentesForm();if(F.fuente==="Otros")setTimeout(()=>$("f-otro").focus(),30)});
+  $("f-otrowrap").style.display=F.fuente==="Otros"?"":"none";
+  const nombres=[...new Set(allIng().filter(i=>i.fuente==="Otros"&&i.otro).map(i=>i.otro))];
+  $("f-otros").innerHTML=nombres.map(n=>`<option value="${esc(n)}">`).join("");
+}
 function renderCatsForm(){
   $("f-cats").innerHTML=S.cfg.cats.map(c=>`<button class="chip ${F.cat===c.n?"on":""}" data-c="${esc(c.n)}">${esc(c.e+" "+c.n)}</button>`).join("");
   $("f-cats").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{F.cat=b.dataset.c;F.sub="";renderCatsForm()});
@@ -377,12 +443,17 @@ function renderCatsForm(){
 }
 function setNec(v){F.nec=v;$("f-nec").querySelectorAll("button").forEach(b=>{const on=(b.dataset.v==="1")===v;b.classList.toggle("on",on);b.classList.toggle("yes",on&&v);b.classList.toggle("no",on&&!v)})}
 $("f-nec").querySelectorAll("button").forEach(b=>b.onclick=()=>setNec(b.dataset.v==="1"));
-function resetForm(){F.cat=null;F.sub="";F.editing=null;setNec(true);$("f-monto").value="";$("f-nota").value="";$("f-fecha").value=today();$("f-metodo").value="Efectivo";renderCatsForm();setTimeout(()=>$("f-monto").focus(),50)}
+function resetForm(){F.cat=null;F.sub="";F.editing=null;F.fuente=null;$("f-otro").value="";setTipo(F.tipo);setNec(true);$("f-monto").value="";$("f-nota").value="";$("f-fecha").value=today();$("f-metodo").value="Efectivo";renderCatsForm();setTimeout(()=>$("f-monto").focus(),50)}
 $("f-guardar").onclick=()=>{
   const monto=Math.round((parseFloat($("f-monto").value)||0)*100)/100;
   if(monto<=0){toast("Escribe el monto");$("f-monto").focus();return}
-  if(!F.cat){toast("Elige una categoría");return}
   const fecha=$("f-fecha").value||today(),m=fecha.slice(0,7);
+  if(F.tipo==="i"){
+    if(!F.fuente){toast("Elige de dónde viene el ingreso");return}
+    const otro=$("f-otro").value.trim();if(F.fuente==="Otros"&&!otro){toast("Escribe el nombre del ingreso");$("f-otro").focus();return}
+    const it={id:uid(),monto,fuente:F.fuente,otro:F.fuente==="Otros"?otro:"",nota:$("f-nota").value.trim(),fecha,ts:new Date().toISOString()};
+    S.ing[m]=ingOf(m).concat([it]);saveIng(m);toast("Ingreso guardado ✓");F.tipo="g";go("inicio");return}
+  if(!F.cat){toast("Elige una categoría");return}
   const it={id:uid(),monto,cat:F.cat,sub:F.sub,nota:$("f-nota").value.trim(),fecha,metodo:$("f-metodo").value,inn:!F.nec,ts:new Date().toISOString()};
   S.months[m]=itemsOf(m).concat([it]);saveMonth(m);toast("Gasto guardado ✓");go("inicio");
 };
@@ -418,6 +489,31 @@ function openEdit(m,id){
   };
   $("sheet-bg").classList.add("on");
 }
+function openEditIng(m,id){
+  const it=ingOf(m).find(i=>i.id===id);if(!it)return;
+  const fs=S.cfg.fuentes.slice();if(!fs.includes(it.fuente))fs.push(it.fuente);
+  $("sheet").innerHTML=`<h3>Editar ingreso</h3>
+   <div class="field"><label>Monto</label><input type="number" inputmode="decimal" id="e-monto" value="${it.monto}"></div>
+   <div class="grid2"><div class="field"><label>De dónde viene</label><select id="e-fuente">${fs.map(f=>`<option ${f===it.fuente?"selected":""}>${esc(f)}</option>`).join("")}</select></div>
+   <div class="field"><label>Fecha</label><input type="date" id="e-fecha" value="${it.fecha}"></div></div>
+   <div class="field" id="e-otrowrap"><label>Nombre del ingreso</label><input type="text" id="e-otro" value="${esc(it.otro||"")}"></div>
+   <div class="field"><label>Nota</label><input type="text" id="e-nota" value="${esc(it.nota)}"></div>
+   <button class="btn" id="e-save">Guardar cambios</button>
+   <div style="display:flex;gap:8px;margin-top:8px"><button class="btn ghost" id="e-cancel">Cancelar</button><button class="btn danger" id="e-del">Borrar</button></div>`;
+  const tog=()=>$("e-otrowrap").style.display=$("e-fuente").value==="Otros"?"":"none";tog();$("e-fuente").onchange=tog;
+  $("e-cancel").onclick=closeSheet;
+  $("e-del").onclick=()=>confirmBox("¿Borrar este ingreso?",()=>{S.ing[m]=ingOf(m).filter(i=>i.id!==id);saveIng(m);toast("Ingreso borrado");render()});
+  $("e-save").onclick=()=>{
+    const monto=Math.round((parseFloat($("e-monto").value)||0)*100)/100;if(monto<=0){toast("Monto inválido");return}
+    const fuente=$("e-fuente").value,otro=$("e-otro").value.trim();if(fuente==="Otros"&&!otro){toast("Escribe el nombre del ingreso");return}
+    const fecha=$("e-fecha").value||it.fecha,nm=fecha.slice(0,7);
+    const nu=Object.assign({},it,{monto,fuente,otro:fuente==="Otros"?otro:"",fecha,nota:$("e-nota").value.trim()});
+    S.ing[m]=ingOf(m).filter(i=>i.id!==id);
+    if(nm===m)S.ing[m]=S.ing[m].concat([nu]);else S.ing[nm]=ingOf(nm).concat([nu]);
+    saveIng(m);if(nm!==m)saveIng(nm);closeSheet();toast("Cambios guardados");render();
+  };
+  $("sheet-bg").classList.add("on");
+}
 function confirmBox(msg,ok){
   $("sheet").innerHTML=`<h3>${esc(msg)}</h3><div style="display:flex;gap:8px"><button class="btn ghost" id="c-no">Cancelar</button><button class="btn danger" id="c-yes">Sí</button></div>`;
   $("c-no").onclick=closeSheet;$("c-yes").onclick=()=>{closeSheet();ok()};$("sheet-bg").classList.add("on");
@@ -430,25 +526,29 @@ function promptBox(title,ok){
 
 /* ---------- report ---------- */
 function bajar(nombre,data,tipo){const u=URL.createObjectURL(new Blob([data],{type:tipo}));const a=document.createElement("a");a.href=u;a.download=nombre;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(u);a.remove()},1000)}
-$("b-exp").onclick=()=>{bajar("respaldo_mis_gastos_"+today()+".json",JSON.stringify({app:"misgastos",v:1,cfg:S.cfg,months:S.months}),"application/json");toast("Respaldo descargado")};
+$("b-exp").onclick=()=>{bajar("respaldo_mis_gastos_"+today()+".json",JSON.stringify({app:"misgastos",v:2,cfg:S.cfg,months:S.months,ing:S.ing}),"application/json");toast("Respaldo descargado")};
 $("b-imp").onclick=()=>$("b-file").click();
 $("b-file").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(d.app!=="misgastos"||!d.months)throw 0;
-  confirmBox("¿Cargar este respaldo? Reemplaza los gastos que tienes ahora en este aparato.",()=>{S.cfg=d.cfg||S.cfg;S.months=d.months;persist();toast("Respaldo cargado");go("inicio")})}catch(_){toast("Ese archivo no es un respaldo válido")}e.target.value=""};
+  confirmBox("¿Cargar este respaldo? Reemplaza los gastos que tienes ahora en este aparato.",()=>{S.cfg=d.cfg||S.cfg;if(!Array.isArray(S.cfg.fuentes))S.cfg.fuentes=DEFAULT_FUENTES.slice();S.months=d.months;S.ing=d.ing||{};persist();toast("Respaldo cargado");go("inicio")})}catch(_){toast("Ese archivo no es un respaldo válido")}e.target.value=""};
 $("r-btn").onclick=async()=>{
   const d1=$("r-desde").value,d2=$("r-hasta").value;if(!d1||!d2||d1>d2){toast("Revisa las fechas");return}
   const its=allItems().filter(i=>i.fecha>=d1&&i.fecha<=d2).sort((a,b)=>a.fecha.localeCompare(b.fecha));
-  if(!its.length){toast("No hay gastos en esas fechas");return}
+  const ins=allIng().filter(i=>i.fecha>=d1&&i.fecha<=d2).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  if(!its.length&&!ins.length){toast("No hay movimientos en esas fechas");return}
   const c=v=>{v=String(v??"");return /[",;\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
-  const tot=its.reduce((a,b)=>a+b.monto,0);
-  const lines=[["Fecha","Categoría","Subcategoría","Monto (RD$)","Forma de pago","Necesario","Nota"].join(",")]
+  const tot=its.reduce((a,b)=>a+b.monto,0),ti=ins.reduce((a,b)=>a+b.monto,0);
+  const lines=["GASTOS",["Fecha","Categoría","Subcategoría","Monto (RD$)","Forma de pago","Necesario","Nota"].join(",")]
     .concat(its.map(i=>[i.fecha,i.cat,i.sub,i.monto.toFixed(2),i.metodo,i.inn?"No":"Sí",i.nota].map(c).join(",")))
-    .concat(["",["","","TOTAL",tot.toFixed(2)].join(",")]);
+    .concat([["","","TOTAL GASTOS",tot.toFixed(2)].join(","),"","INGRESOS",["Fecha","Fuente","Nombre (Otros)","Monto (RD$)","","","Nota"].join(",")])
+    .concat(ins.map(i=>[i.fecha,i.fuente,i.fuente==="Otros"?i.otro:"",i.monto.toFixed(2),"","",i.nota].map(c).join(",")))
+    .concat([["","","TOTAL INGRESOS",ti.toFixed(2)].join(","),"",["","","BALANCE",(ti-tot).toFixed(2)].join(",")]);
   const csv="﻿"+lines.join("\r\n");
   bajar(`gastos_${d1}_a_${d2}.csv`,csv,"text/csv");toast("Reporte descargado")
 };
 
 /* ---------- boot ---------- */
-try{const d=JSON.parse(localStorage.getItem(KEY)||"null");if(d){if(d.cfg&&Array.isArray(d.cfg.cats))S.cfg=d.cfg;if(d.months)S.months=d.months}}catch(e){}
+try{const d=JSON.parse(localStorage.getItem(KEY)||"null");if(d){if(d.cfg&&Array.isArray(d.cfg.cats))S.cfg=d.cfg;if(d.months)S.months=d.months;if(d.ing)S.ing=d.ing}}catch(e){}
+if(!Array.isArray(S.cfg.fuentes))S.cfg.fuentes=DEFAULT_FUENTES.slice();
 [{n:"Minutos",e:"📞",subs:[]},{n:"Perfil",e:"👤",subs:[]},{n:"Otros Ath",e:"🧾",subs:[]}].forEach(c=>{if(!S.cfg.v2&&!S.cfg.cats.some(x=>x.n.toLowerCase()===c.n.toLowerCase()))S.cfg.cats.push(c)});S.cfg.v2=true;
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 S.ready=true;$("loading").style.display="none";$("sync").textContent="✓ Guardado en este aparato";go("inicio");
