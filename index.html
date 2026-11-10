@@ -107,6 +107,14 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
 .inline{display:flex;gap:8px}
 .inline input{flex:1}
 .muted{color:var(--muted);font-size:13px}
+.lock{position:fixed;inset:0;background:var(--bg);z-index:30;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.lock.on{display:flex}
+.lock h3{margin:0 0 6px;font-size:20px}.lock p{margin:0 0 22px;color:var(--muted);font-size:14px;text-align:center}
+.dots{display:flex;gap:14px;margin-bottom:28px}.dots i{width:14px;height:14px;border-radius:50%;border:2px solid var(--acc)}.dots i.f{background:var(--acc)}
+.dots.err{animation:sh .35s}@keyframes sh{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.pad{display:grid;grid-template-columns:repeat(3,72px);gap:14px}
+.pad button{height:72px;border-radius:50%;border:1px solid var(--line);background:var(--card);font-size:26px;font-weight:600;cursor:pointer}
+.pad button.nb{border:0;background:none;font-size:15px;color:var(--muted)}
 .loading{text-align:center;padding:60px 10px;color:var(--muted)}
 </style>
 </head>
@@ -233,6 +241,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
     <div class="card"><div id="a-fuentes"></div>
       <div class="inline" style="margin-top:10px"><input type="text" id="a-fnombre" placeholder="Nueva fuente"><button class="btn sm" id="a-fadd">Agregar</button></div>
       <p class="muted" style="margin:10px 0 0">En «Otros» escribes el nombre cada vez, y en Estadísticas te sale cada uno por separado.</p></div>
+    <h2>PIN de entrada</h2>
+    <div class="card"><p class="muted" style="margin:0 0 12px" id="a-pintxt"></p>
+      <div style="display:flex;gap:8px"><button class="btn sm" id="a-pinset" style="flex:1"></button><button class="btn sm danger" id="a-pindel" style="flex:1">Quitar PIN</button></div></div>
     <h2>Respaldo</h2>
     <div class="card">
       <p class="muted" style="margin:0 0 12px">Tus gastos se guardan solo en este celular. Descarga un respaldo de vez en cuando (por ejemplo cada mes) y guárdalo en tu WhatsApp o Google Drive. Si cambias de celular o borras el navegador, lo cargas aquí.</p>
@@ -250,6 +261,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
   <button data-v="ajustes"><b>⚙️</b>Ajustes</button>
 </div></nav>
 
+<div class="lock" id="lock"><div style="font-size:40px;margin-bottom:8px">🔒</div><h3 id="lk-t">Mis Gastos</h3><p id="lk-p">Escribe tu PIN</p>
+  <div class="dots" id="lk-d"><i></i><i></i><i></i><i></i></div>
+  <div class="pad" id="lk-pad"></div>
+  <button class="btn ghost sm" id="lk-x" style="margin-top:22px;display:none">Cancelar</button></div>
 <div class="sheet-bg" id="sheet-bg"><div class="sheet" id="sheet"></div></div>
 <div class="toast" id="toast"></div>
 
@@ -396,6 +411,8 @@ function renderStats(){
   if(!$("r-desde").value){$("r-desde").value=m+"-01";$("r-hasta").value=m+"-"+pad(dim)}
 }
 function renderAjustes(){
+  const hp=!!getPin();$("a-pintxt").textContent=hp?"Tu app pide el PIN cada vez que la abres.":"Ponle un PIN de 4 números para que nadie más la pueda abrir en tu celular.";
+  $("a-pinset").textContent=hp?"Cambiar PIN":"Poner PIN";$("a-pindel").style.display=hp?"":"none";
   $("a-pres").value=S.cfg.pres||"";renderFuentesAj();
   $("a-cats").innerHTML=S.cfg.cats.map((c,ci)=>`<div class="catrow" style="flex-wrap:wrap">
    <div class="ico">${esc(c.e)}</div><div class="grow t1">${esc(c.n)}</div>
@@ -545,6 +562,28 @@ $("r-btn").onclick=async()=>{
   const csv="﻿"+lines.join("\r\n");
   bajar(`gastos_${d1}_a_${d2}.csv`,csv,"text/csv");toast("Reporte descargado")
 };
+
+/* ---------- PIN ---------- */
+const PKEY="misgastos_pin";
+const getPin=()=>{try{return localStorage.getItem(PKEY)}catch(e){return null}};
+async function hash(t){try{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("misgastos:"+t));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}catch(e){return"p:"+t}}
+let LK={val:"",mode:"open",first:"",done:null};
+function lkDots(){$("lk-d").querySelectorAll("i").forEach((d,i)=>d.classList.toggle("f",i<LK.val.length))}
+function lkErr(msg){$("lk-p").textContent=msg;const d=$("lk-d");d.classList.remove("err");void d.offsetWidth;d.classList.add("err");LK.val="";lkDots()}
+function lkShow(mode,done){LK={val:"",mode,first:"",done};$("lk-t").textContent=mode==="open"?"Mis Gastos":"Nuevo PIN";
+  $("lk-p").textContent=mode==="open"?"Escribe tu PIN":"Escribe un PIN de 4 números";$("lk-x").style.display=mode==="open"?"none":"";lkDots();$("lock").classList.add("on")}
+async function lkFull(){
+  if(LK.mode==="open"){if(await hash(LK.val)===getPin()){$("lock").classList.remove("on");LK.done&&LK.done()}else lkErr("PIN incorrecto, intenta otra vez");return}
+  if(!LK.first){LK.first=LK.val;LK.val="";lkDots();$("lk-p").textContent="Escríbelo otra vez para confirmar";return}
+  if(LK.first!==LK.val){LK.first="";lkErr("No coinciden. Escribe el PIN nuevo otra vez");return}
+  try{localStorage.setItem(PKEY,await hash(LK.val))}catch(e){}$("lock").classList.remove("on");toast("PIN guardado ✓");renderAjustes()}
+$("lk-pad").innerHTML=[1,2,3,4,5,6,7,8,9,"",0,"⌫"].map(k=>k===""?"<span></span>":`<button class="${k==="⌫"?"nb":""}" data-k="${k}">${k}</button>`).join("");
+$("lk-pad").querySelectorAll("button").forEach(b=>b.onclick=()=>{const k=b.dataset.k;if(k==="⌫")LK.val=LK.val.slice(0,-1);else if(LK.val.length<4)LK.val+=k;lkDots();if(LK.val.length===4)setTimeout(lkFull,120)});
+$("lk-x").onclick=()=>$("lock").classList.remove("on");
+$("a-pinset").onclick=()=>{const set=()=>lkShow("new");getPin()?lkShow("open",set):set()};
+$("a-pindel").onclick=()=>lkShow("open",()=>{try{localStorage.removeItem(PKEY)}catch(e){}toast("PIN quitado");renderAjustes()});
+document.addEventListener("visibilitychange",()=>{if(document.hidden&&getPin()&&!$("lock").classList.contains("on")){LK.hiddenAt=Date.now()}else if(!document.hidden&&getPin()&&LK.hiddenAt&&Date.now()-LK.hiddenAt>60000){LK.hiddenAt=0;lkShow("open")}});
+if(getPin())lkShow("open");
 
 /* ---------- boot ---------- */
 try{const d=JSON.parse(localStorage.getItem(KEY)||"null");if(d){if(d.cfg&&Array.isArray(d.cfg.cats))S.cfg=d.cfg;if(d.months)S.months=d.months;if(d.ing)S.ing=d.ing}}catch(e){}
