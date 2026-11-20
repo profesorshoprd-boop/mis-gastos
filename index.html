@@ -93,6 +93,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
 .pnav{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .pnav button{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-size:22px;cursor:pointer;line-height:1}
 .pnav div{font-weight:700;text-align:center;flex:1}
+.ftog{width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);text-align:left;font-weight:600;cursor:pointer;display:flex;justify-content:space-between}
+.ftog b{color:var(--acc)}
+.flbl{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin:14px 0 8px}
+.chips.sm .chip{padding:7px 11px;font-size:13.5px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px}
 .grid3 .card{padding:10px 12px;margin-bottom:8px}.grid3 .big{font-size:16px}
 .dayh{font-size:12px;color:var(--muted);font-weight:700;margin:14px 2px 4px;display:flex;justify-content:space-between;text-transform:uppercase;letter-spacing:.03em}
@@ -127,7 +131,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
 <body>
 <div class="app">
   <header>
-    <h1>Mis <span>Gastos</span> <small style="font-size:11px;color:var(--muted);font-weight:600">v4</small></h1>
+    <h1>Mis <span>Gastos</span> <small style="font-size:11px;color:var(--muted);font-weight:600">v5</small></h1>
     <div class="sync" id="sync">Cargando…</div>
   </header>
   <div class="notice" id="notice"></div>
@@ -190,7 +194,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
       <div class="seg" id="h-per" style="margin-bottom:10px"><button data-p="d">Diario</button><button data-p="w">Semanal</button><button data-p="m" class="on">Mensual</button></div>
       <div class="pnav"><button id="h-prev" aria-label="Anterior">‹</button><div id="h-lbl"></div><button id="h-next" aria-label="Siguiente">›</button></div>
       <div class="seg" id="h-tp" style="margin:10px 0"><button data-t="" class="on">Todo</button><button data-t="g">💸 Gastos</button><button data-t="i">💰 Ingresos</button></div>
-      <select id="h-cat"></select>
+      <button class="ftog" id="h-ftog"></button>
+      <div id="h-fbox" style="display:none">
+        <div id="h-fg"><div class="flbl">Tipos de gasto</div><div class="chips sm" id="h-fcats"></div></div>
+        <div id="h-fi"><div class="flbl">Tipos de ingreso</div><div class="chips sm" id="h-ffs"></div></div>
+        <div style="display:flex;gap:8px;margin-top:12px"><button class="btn sm ghost" id="h-fclr" style="flex:1">Quitar filtros</button><button class="btn sm" id="h-fok" style="flex:1">Listo</button></div>
+      </div>
     </div>
     <div class="grid3" id="h-sum"></div>
     <div id="h-list"></div>
@@ -372,7 +381,7 @@ function renderInicio(){
   bindRows($("i-ult"));
 }
 function fillCatSelect(sel){const v=sel.value;sel.innerHTML='<option value="">Todas</option>'+S.cfg.cats.map(c=>`<option value="${esc(c.n)}">${esc(c.e+" "+c.n)}</option>`).join("");sel.value=v}
-const H={per:"m",ref:null,tp:"",f:""};
+const H={per:"m",ref:null,tp:"",sel:new Set(),open:false};
 const ds=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
 function hRange(){const r=new Date(H.ref+"T12:00");
   if(H.per==="d")return[H.ref,H.ref];
@@ -383,21 +392,29 @@ function hLabel(a,b){const f=x=>{const d=new Date(x+"T12:00");return d.getDate()
   if(H.per==="w")return"Semana: "+f(a)+" – "+f(b);
   const m=monthName(a.slice(0,7));return m.charAt(0).toUpperCase()+m.slice(1)}
 function hMove(n){const r=new Date(H.ref+"T12:00");if(H.per==="d")r.setDate(r.getDate()+n);else if(H.per==="w")r.setDate(r.getDate()+7*n);else{r.setDate(1);r.setMonth(r.getMonth()+n)}H.ref=ds(r);renderHist()}
-function fillHFilter(){const sel=$("h-cat");
-  const cats=`<optgroup label="Tipo de gasto">${S.cfg.cats.map(c=>`<option value="c:${esc(c.n)}">${esc(c.e+" "+c.n)}</option>`).join("")}</optgroup>`;
+function fillHFilter(){
   const otros=[...new Set(allIng().filter(i=>i.fuente==="Otros"&&i.otro).map(i=>i.otro))];
-  const fs=`<optgroup label="Tipo de ingreso">${S.cfg.fuentes.map(f=>`<option value="f:${esc(f)}">💰 ${esc(f)}</option>`).join("")}${otros.map(o=>`<option value="o:${esc(o)}">💰 Otros: ${esc(o)}</option>`).join("")}</optgroup>`;
-  sel.innerHTML=`<option value="">${H.tp==="i"?"Todos los ingresos":H.tp==="g"?"Todos los gastos":"Todos los tipos"}</option>`+(H.tp==="i"?"":cats)+(H.tp==="g"?"":fs);
-  sel.value=[...sel.options].some(o=>o.value===H.f)?H.f:"";H.f=sel.value}
+  const cats=S.cfg.cats.map(c=>["c:"+c.n,c.e+" "+c.n]);
+  const fs=S.cfg.fuentes.filter(f=>f!=="Otros"||!otros.length).map(f=>["f:"+f,f]).concat(otros.length?[["f:Otros","Otros (todos)"]]:[]).concat(otros.map(o=>["o:"+o,"Otros: "+o]));
+  [...H.sel].forEach(v=>{if((H.tp==="i"&&v[0]==="c")||(H.tp==="g"&&v[0]!=="c"))H.sel.delete(v)});
+  const chip=([v,l])=>`<button class="chip ${H.sel.has(v)?"on":""}" data-v="${esc(v)}">${esc(l)}</button>`;
+  $("h-fcats").innerHTML=cats.map(chip).join("");$("h-ffs").innerHTML=fs.map(chip).join("");
+  $("h-fg").style.display=H.tp==="i"?"none":"";$("h-fi").style.display=H.tp==="g"?"none":"";
+  $("h-fbox").querySelectorAll(".chip").forEach(c=>c.onclick=()=>{const v=c.dataset.v;H.sel.has(v)?H.sel.delete(v):H.sel.add(v);renderHist()});
+  const n=H.sel.size;$("h-ftog").innerHTML=`<span>${n?"Filtrando por "+n+(n===1?" tipo":" tipos"):"Filtrar por tipo de gasto o ingreso"}</span><b>${H.open?"▲":"▼"}</b>`;
+  $("h-fbox").style.display=H.open?"":"none";
+}
 function renderHist(){
   if(!H.ref)H.ref=today();
   $("h-per").querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.p===H.per));
   $("h-tp").querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.t===H.tp));
   fillHFilter();
   const[a,b]=hRange();$("h-lbl").textContent=hLabel(a,b);
-  const inR=i=>i.fecha>=a&&i.fecha<=b,k=H.f.slice(0,1),v=H.f.slice(2);
-  const gs=(H.tp==="i"||k==="f"||k==="o")?[]:allItems().filter(i=>inR(i)&&(k!=="c"||i.cat===v));
-  const is=(H.tp==="g"||k==="c")?[]:allIng().filter(i=>inR(i)&&(k!=="f"||i.fuente===v)&&(k!=="o"||(i.fuente==="Otros"&&i.otro===v))).map(i=>Object.assign({_i:1},i));
+  const inR=i=>i.fecha>=a&&i.fecha<=b,sel=[...H.sel];
+  const sc=sel.filter(x=>x[0]==="c").map(x=>x.slice(2)),sf=sel.filter(x=>x[0]==="f").map(x=>x.slice(2)),so=sel.filter(x=>x[0]==="o").map(x=>x.slice(2));
+  const any=sel.length>0,anyG=sc.length>0,anyI=sf.length+so.length>0;
+  const gs=(H.tp==="i"||(any&&!anyG))?[]:allItems().filter(i=>inR(i)&&(!anyG||sc.includes(i.cat)));
+  const is=(H.tp==="g"||(any&&!anyI))?[]:allIng().filter(i=>inR(i)&&(!anyI||sf.includes(i.fuente)||(i.fuente==="Otros"&&so.includes(i.otro)))).map(i=>Object.assign({_i:1},i));
   const tg=gs.reduce((x,y)=>x+y.monto,0),ti=is.reduce((x,y)=>x+y.monto,0),bal=ti-tg;
   const box=(l,val,cls,sub)=>`<div class="card"><div class="lbl">${l}</div><div class="big ${cls||""}">${val}</div><div class="sub">${sub}</div></div>`;
   $("h-sum").innerHTML=box("Gastos",fmt(tg),"",gs.length+" mov.")+box("Ingresos",fmt(ti),"pos",is.length+" mov.")+box("Balance",(bal<0?"−":"")+fmt(Math.abs(bal)),bal<0?"neg":"pos","ingr. − gastos");
@@ -411,7 +428,9 @@ function renderHist(){
 $("h-per").querySelectorAll("button").forEach(b=>b.onclick=()=>{H.per=b.dataset.p;H.ref=today();renderHist()});
 $("h-tp").querySelectorAll("button").forEach(b=>b.onclick=()=>{H.tp=b.dataset.t;renderHist()});
 $("h-prev").onclick=()=>hMove(-1);$("h-next").onclick=()=>hMove(1);
-$("h-cat").onchange=()=>{H.f=$("h-cat").value;renderHist()};
+$("h-ftog").onclick=()=>{H.open=!H.open;renderHist()};
+$("h-fok").onclick=()=>{H.open=false;renderHist()};
+$("h-fclr").onclick=()=>{H.sel.clear();renderHist()};
 function hbars(map,total,limit){const arr=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,limit||99);
   if(!arr.length)return '<div class="empty">Sin datos</div>';const mx=arr[0][1];
   return arr.map(([k,v])=>`<div class="hbar"><div class="top"><b>${esc(k)}</b><span>${fmt(v)} · ${Math.round(v/total*100)}%</span></div><div class="bar"><i style="width:${v/mx*100}%"></i></div></div>`).join("")}
