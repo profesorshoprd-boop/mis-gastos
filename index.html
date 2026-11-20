@@ -90,6 +90,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
 .daysx{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px}
 .toolbar{display:flex;gap:8px;margin-bottom:12px}
 .toolbar>*{flex:1}
+.pnav{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pnav button{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-size:22px;cursor:pointer;line-height:1}
+.pnav div{font-weight:700;text-align:center;flex:1}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px}
+.grid3 .card{padding:10px 12px;margin-bottom:8px}.grid3 .big{font-size:16px}
 .dayh{font-size:12px;color:var(--muted);font-weight:700;margin:14px 2px 4px;display:flex;justify-content:space-between;text-transform:uppercase;letter-spacing:.03em}
 .sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;z-index:10;align-items:flex-end;justify-content:center}
 .sheet-bg.on{display:flex}
@@ -122,7 +127,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
 <body>
 <div class="app">
   <header>
-    <h1>Mis <span>Gastos</span> <small style="font-size:11px;color:var(--muted);font-weight:600">v3</small></h1>
+    <h1>Mis <span>Gastos</span> <small style="font-size:11px;color:var(--muted);font-weight:600">v4</small></h1>
     <div class="sync" id="sync">Cargando…</div>
   </header>
   <div class="notice" id="notice"></div>
@@ -181,12 +186,13 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
 
   <!-- HISTORIAL -->
   <section class="view" id="v-historial">
-    <div class="toolbar">
-      <input type="month" id="h-mes">
-      <select id="h-tipo"><option value="">Todo</option><option value="g">Gastos</option><option value="i">Ingresos</option></select>
-      <select id="h-cat"><option value="">Todas</option></select>
+    <div class="card" style="padding:12px">
+      <div class="seg" id="h-per" style="margin-bottom:10px"><button data-p="d">Diario</button><button data-p="w">Semanal</button><button data-p="m" class="on">Mensual</button></div>
+      <div class="pnav"><button id="h-prev" aria-label="Anterior">‹</button><div id="h-lbl"></div><button id="h-next" aria-label="Siguiente">›</button></div>
+      <div class="seg" id="h-tp" style="margin:10px 0"><button data-t="" class="on">Todo</button><button data-t="g">💸 Gastos</button><button data-t="i">💰 Ingresos</button></div>
+      <select id="h-cat"></select>
     </div>
-    <div class="card" style="padding:12px 16px"><div style="display:flex;justify-content:space-between"><span class="muted" id="h-count"></span><b id="h-total"></b></div></div>
+    <div class="grid3" id="h-sum"></div>
     <div id="h-list"></div>
   </section>
 
@@ -366,23 +372,46 @@ function renderInicio(){
   bindRows($("i-ult"));
 }
 function fillCatSelect(sel){const v=sel.value;sel.innerHTML='<option value="">Todas</option>'+S.cfg.cats.map(c=>`<option value="${esc(c.n)}">${esc(c.e+" "+c.n)}</option>`).join("");sel.value=v}
+const H={per:"m",ref:null,tp:"",f:""};
+const ds=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+function hRange(){const r=new Date(H.ref+"T12:00");
+  if(H.per==="d")return[H.ref,H.ref];
+  if(H.per==="w"){const dw=(r.getDay()+6)%7;const a=new Date(r);a.setDate(r.getDate()-dw);const b=new Date(a);b.setDate(a.getDate()+6);return[ds(a),ds(b)]}
+  const a=new Date(r.getFullYear(),r.getMonth(),1),b=new Date(r.getFullYear(),r.getMonth()+1,0);return[ds(a),ds(b)]}
+function hLabel(a,b){const f=x=>{const d=new Date(x+"T12:00");return d.getDate()+" "+MESES[d.getMonth()].slice(0,3)};
+  if(H.per==="d"){const d=new Date(a+"T12:00");const l=dayLabel(a);return(l==="Hoy"||l==="Ayer"?l+" · ":"")+DIAS[d.getDay()]+" "+d.getDate()+" "+MESES[d.getMonth()]+" "+d.getFullYear()}
+  if(H.per==="w")return"Semana: "+f(a)+" – "+f(b);
+  const m=monthName(a.slice(0,7));return m.charAt(0).toUpperCase()+m.slice(1)}
+function hMove(n){const r=new Date(H.ref+"T12:00");if(H.per==="d")r.setDate(r.getDate()+n);else if(H.per==="w")r.setDate(r.getDate()+7*n);else{r.setDate(1);r.setMonth(r.getMonth()+n)}H.ref=ds(r);renderHist()}
+function fillHFilter(){const sel=$("h-cat");
+  const cats=`<optgroup label="Tipo de gasto">${S.cfg.cats.map(c=>`<option value="c:${esc(c.n)}">${esc(c.e+" "+c.n)}</option>`).join("")}</optgroup>`;
+  const otros=[...new Set(allIng().filter(i=>i.fuente==="Otros"&&i.otro).map(i=>i.otro))];
+  const fs=`<optgroup label="Tipo de ingreso">${S.cfg.fuentes.map(f=>`<option value="f:${esc(f)}">💰 ${esc(f)}</option>`).join("")}${otros.map(o=>`<option value="o:${esc(o)}">💰 Otros: ${esc(o)}</option>`).join("")}</optgroup>`;
+  sel.innerHTML=`<option value="">${H.tp==="i"?"Todos los ingresos":H.tp==="g"?"Todos los gastos":"Todos los tipos"}</option>`+(H.tp==="i"?"":cats)+(H.tp==="g"?"":fs);
+  sel.value=[...sel.options].some(o=>o.value===H.f)?H.f:"";H.f=sel.value}
 function renderHist(){
-  if(!$("h-mes").value)$("h-mes").value=curMonth();
-  fillCatSelect($("h-cat"));
-  const tp=$("h-tipo").value;$("h-cat").style.display=tp==="i"?"none":"";
-  const m=$("h-mes").value,cf=tp==="i"?"":$("h-cat").value;
-  let gs=tp==="i"?[]:itemsOf(m).filter(i=>!cf||i.cat===cf);
-  let is=(tp==="g"||cf)?[]:ingOf(m).map(i=>Object.assign({_i:1},i));
-  let its=gs.concat(is).sort((a,b)=>(b.fecha+b.ts).localeCompare(a.fecha+a.ts));
-  const tg=gs.reduce((a,b)=>a+b.monto,0),ti=is.reduce((a,b)=>a+b.monto,0);
-  $("h-count").textContent=(tp==="i"?is.length+" ingresos":tp==="g"||cf?gs.length+" gastos":gs.length+" gastos · "+is.length+" ingresos")+" · "+monthName(m);
-  $("h-total").textContent=tp==="i"?"+"+fmt2(ti):tp==="g"||cf?fmt2(tg):"Balance "+(ti-tg<0?"−":"+")+fmt2(Math.abs(ti-tg));
-  if(!its.length){$("h-list").innerHTML='<div class="card"><div class="empty">No hay movimientos aquí.</div></div>';return}
+  if(!H.ref)H.ref=today();
+  $("h-per").querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.p===H.per));
+  $("h-tp").querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.t===H.tp));
+  fillHFilter();
+  const[a,b]=hRange();$("h-lbl").textContent=hLabel(a,b);
+  const inR=i=>i.fecha>=a&&i.fecha<=b,k=H.f.slice(0,1),v=H.f.slice(2);
+  const gs=(H.tp==="i"||k==="f"||k==="o")?[]:allItems().filter(i=>inR(i)&&(k!=="c"||i.cat===v));
+  const is=(H.tp==="g"||k==="c")?[]:allIng().filter(i=>inR(i)&&(k!=="f"||i.fuente===v)&&(k!=="o"||(i.fuente==="Otros"&&i.otro===v))).map(i=>Object.assign({_i:1},i));
+  const tg=gs.reduce((x,y)=>x+y.monto,0),ti=is.reduce((x,y)=>x+y.monto,0),bal=ti-tg;
+  const box=(l,val,cls,sub)=>`<div class="card"><div class="lbl">${l}</div><div class="big ${cls||""}">${val}</div><div class="sub">${sub}</div></div>`;
+  $("h-sum").innerHTML=box("Gastos",fmt(tg),"",gs.length+" mov.")+box("Ingresos",fmt(ti),"pos",is.length+" mov.")+box("Balance",(bal<0?"−":"")+fmt(Math.abs(bal)),bal<0?"neg":"pos","ingr. − gastos");
+  const its=gs.concat(is).sort((x,y)=>(y.fecha+y.ts).localeCompare(x.fecha+x.ts));
+  if(!its.length){$("h-list").innerHTML='<div class="card"><div class="empty">No hay movimientos en este período.</div></div>';return}
   const g={};its.forEach(i=>(g[i.fecha]=g[i.fecha]||[]).push(i));
-  $("h-list").innerHTML=Object.keys(g).sort().reverse().map(d=>{const s=g[d].reduce((a,b)=>a+(b._i?b.monto:-b.monto),0);
-    return `<div class="dayh"><span>${dayLabel(d)}</span><span>${s<0?"−":"+"}${fmt2(Math.abs(s))}</span></div><div class="card" style="padding:4px 16px">${g[d].map(anyRow).join("")}</div>`}).join("");
+  $("h-list").innerHTML=Object.keys(g).sort().reverse().map(d=>{const t=g[d].reduce((x,y)=>x+(y._i?y.monto:-y.monto),0);
+    return `<div class="dayh"><span>${dayLabel(d)}</span><span>${t<0?"−":"+"}${fmt2(Math.abs(t))}</span></div><div class="card" style="padding:4px 16px">${g[d].map(anyRow).join("")}</div>`}).join("");
   bindRows($("h-list"));
 }
+$("h-per").querySelectorAll("button").forEach(b=>b.onclick=()=>{H.per=b.dataset.p;H.ref=today();renderHist()});
+$("h-tp").querySelectorAll("button").forEach(b=>b.onclick=()=>{H.tp=b.dataset.t;renderHist()});
+$("h-prev").onclick=()=>hMove(-1);$("h-next").onclick=()=>hMove(1);
+$("h-cat").onchange=()=>{H.f=$("h-cat").value;renderHist()};
 function hbars(map,total,limit){const arr=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,limit||99);
   if(!arr.length)return '<div class="empty">Sin datos</div>';const mx=arr[0][1];
   return arr.map(([k,v])=>`<div class="hbar"><div class="top"><b>${esc(k)}</b><span>${fmt(v)} · ${Math.round(v/total*100)}%</span></div><div class="bar"><i style="width:${v/mx*100}%"></i></div></div>`).join("")}
@@ -435,7 +464,7 @@ $("a-fadd").onclick=()=>{const n=$("a-fnombre").value.trim();if(!n)return;if(S.c
 $("a-presbtn").onclick=()=>{S.cfg.pres=Math.max(0,+$("a-pres").value||0);saveCfg();toast("Presupuesto guardado")};
 $("a-add").onclick=()=>{const n=$("a-nombre").value.trim();if(!n)return;if(S.cfg.cats.some(c=>c.n.toLowerCase()===n.toLowerCase())){toast("Esa categoría ya existe");return}
   S.cfg.cats.push({n,e:$("a-emoji").value.trim()||"📦",subs:[]});$("a-nombre").value="";$("a-emoji").value="";saveCfg();renderAjustes();toast("Categoría agregada")};
-$("h-mes").onchange=$("h-cat").onchange=$("h-tipo").onchange=renderHist;
+
 $("s-mes").onchange=()=>{$("r-desde").value="";renderStats()};
 
 /* ---------- form ---------- */
