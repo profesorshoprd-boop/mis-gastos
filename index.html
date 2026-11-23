@@ -131,7 +131,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
 <body>
 <div class="app">
   <header>
-    <h1>Mis <span>Gastos</span> <small style="font-size:11px;color:var(--muted);font-weight:600">v6</small></h1>
+    <h1>Mis <span>Gastos</span> <small style="font-size:11px;color:var(--muted);font-weight:600">v7</small></h1>
     <div class="sync" id="sync">Cargando…</div>
   </header>
   <div class="notice" id="notice"></div>
@@ -654,6 +654,13 @@ $("a-pinset").onclick=()=>{const set=()=>lkShow("new");getPin()?lkShow("open",se
 $("a-pindel").onclick=()=>lkShow("open",()=>{try{localStorage.removeItem(PKEY)}catch(e){}toast("PIN quitado");renderAjustes()});
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&getPin()&&!$("lock").classList.contains("on")){LK.hiddenAt=Date.now()}else if(!document.hidden&&getPin()&&LK.hiddenAt&&Date.now()-LK.hiddenAt>60000){LK.hiddenAt=0;lkShow("open")}});
 if(getPin())lkShow("open");
+
+/* ---------- actualización automática ---------- */
+const VER="v7";
+async function checkUpdate(){try{const r=await fetch("./index.html?t="+Date.now(),{cache:"no-store"});const t=await r.text();const m=t.match(/const VER="(v\d+)"/);
+  if(m&&m[1]!==VER&&!$("sheet-bg").classList.contains("on")&&view!=="agregar"){toast("Actualizando a "+m[1]+"…");setTimeout(()=>location.replace("./?v="+m[1]),800)}}catch(e){}}
+setTimeout(checkUpdate,1500);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)checkUpdate()});
 
 /* ---------- boot ---------- */
 try{const d=JSON.parse(localStorage.getItem(KEY)||"null");if(d){if(d.cfg&&Array.isArray(d.cfg.cats))S.cfg=d.cfg;if(d.months)S.months=d.months;if(d.ing)S.ing=d.ing}}catch(e){}
