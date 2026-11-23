@@ -131,7 +131,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
 <body>
 <div class="app">
   <header>
-    <h1>Mis <span>Gastos</span> <small style="font-size:11px;color:var(--muted);font-weight:600">v7</small></h1>
+    <h1>Mis <span>Gastos</span> <small style="font-size:11px;color:var(--muted);font-weight:600">v8</small></h1>
     <div class="sync" id="sync">Cargando…</div>
   </header>
   <div class="notice" id="notice"></div>
@@ -379,7 +379,7 @@ function labelFor(per,a,b){const f=x=>{const d=new Date(x+"T12:00");return DIAS[
   if(per==="w")return f(a)+" – "+f(b);
   const m=monthName(a.slice(0,7));return m.charAt(0).toUpperCase()+m.slice(1)}
 function moveRef(per,ref,n){const r=new Date(ref+"T12:00");if(per==="d")r.setDate(r.getDate()+n);else if(per==="w")r.setDate(r.getDate()+7*n);else{r.setDate(1);r.setMonth(r.getMonth()+n)}return ds(r)}
-let IP=(()=>{try{return localStorage.getItem("misgastos_iper")||"w"}catch(e){return"w"}})(),IR=null;
+let IP="w",IR=null;
 function renderInicio(){
   if(!IR)IR=today();
   $("i-per").querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.p===IP));
@@ -407,7 +407,7 @@ function renderInicio(){
   $("i-ult").innerHTML=ult.length?ult.slice(0,10).map(it=>anyRow(it).replace('<div class="t2">',`<div class="t2">${dayLabel(it.fecha)} · `)).join(""):'<div class="empty">No hay movimientos '+nom+'.<br>Toca <b>＋</b> para registrar un gasto o un ingreso.</div>';
   bindRows($("i-ult"));
 }
-$("i-per").querySelectorAll("button").forEach(b=>b.onclick=()=>{IP=b.dataset.p;IR=today();try{localStorage.setItem("misgastos_iper",IP)}catch(e){}renderInicio()});
+$("i-per").querySelectorAll("button").forEach(b=>b.onclick=()=>{IP=b.dataset.p;IR=today();renderInicio()});
 $("i-prev").onclick=()=>{IR=moveRef(IP,IR,-1);renderInicio()};$("i-next").onclick=()=>{IR=moveRef(IP,IR,1);renderInicio()};
 function fillCatSelect(sel){const v=sel.value;sel.innerHTML='<option value="">Todas</option>'+S.cfg.cats.map(c=>`<option value="${esc(c.n)}">${esc(c.e+" "+c.n)}</option>`).join("");sel.value=v}
 const H={per:"m",ref:null,tp:"",sel:new Set(),open:false};
@@ -656,7 +656,7 @@ document.addEventListener("visibilitychange",()=>{if(document.hidden&&getPin()&&
 if(getPin())lkShow("open");
 
 /* ---------- actualización automática ---------- */
-const VER="v7";
+const VER="v8";
 async function checkUpdate(){try{const r=await fetch("./index.html?t="+Date.now(),{cache:"no-store"});const t=await r.text();const m=t.match(/const VER="(v\d+)"/);
   if(m&&m[1]!==VER&&!$("sheet-bg").classList.contains("on")&&view!=="agregar"){toast("Actualizando a "+m[1]+"…");setTimeout(()=>location.replace("./?v="+m[1]),800)}}catch(e){}}
 setTimeout(checkUpdate,1500);
