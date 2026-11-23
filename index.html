@@ -93,6 +93,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
 .pnav{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .pnav button{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-size:22px;cursor:pointer;line-height:1}
 .pnav div{font-weight:700;text-align:center;flex:1}
+#i-lbl{font-weight:700;text-align:center}
 .ftog{width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);text-align:left;font-weight:600;cursor:pointer;display:flex;justify-content:space-between}
 .ftog b{color:var(--acc)}
 .flbl{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin:14px 0 8px}
@@ -131,7 +132,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
 <body>
 <div class="app">
   <header>
-    <h1>Mis <span>Gastos</span> <small style="font-size:11px;color:var(--muted);font-weight:600">v8</small></h1>
+    <h1>Mis <span>Gastos</span> <small style="font-size:11px;color:var(--muted);font-weight:600">v9</small></h1>
     <div class="sync" id="sync">Cargando…</div>
   </header>
   <div class="notice" id="notice"></div>
@@ -142,7 +143,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
   <section class="view" id="v-inicio">
     <div class="card" style="padding:12px">
       <div class="seg" id="i-per" style="margin-bottom:10px"><button data-p="d">Diario</button><button data-p="w" class="on">Semanal</button><button data-p="m">Mensual</button><button data-p="t">Todo</button></div>
-      <div class="pnav" id="i-nav"><button id="i-prev" aria-label="Anterior">‹</button><div id="i-lbl"></div><button id="i-next" aria-label="Siguiente">›</button></div>
+      <div class="pnav" id="i-nav"><button id="i-prev" aria-label="Anterior">‹</button><label id="i-lblw" style="flex:1;position:relative;cursor:pointer"><div id="i-lbl"></div><div class="sub" style="text-align:center;font-size:11.5px">toca para escoger fecha</div><input type="date" id="i-pick" style="position:absolute;inset:0;opacity:0;width:100%;cursor:pointer"></label><button id="i-next" aria-label="Siguiente">›</button></div>
+      <button class="btn sm ghost" id="i-hoybtn" style="width:100%;margin-top:10px;display:none"></button>
     </div>
     <div class="card">
       <div class="lbl" id="i-limpiolbl">Te queda limpio esta semana</div>
@@ -366,12 +368,12 @@ function render(){
   if(view==="ajustes")renderAjustes();
   if(view==="agregar")renderCatsForm();
 }
-/* semana de sábado a viernes */
+/* semana de lunes a domingo */
 const ds=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
 function rangeFor(per,ref){const r=new Date(ref+"T12:00");
   if(per==="t")return["0000-01-01","9999-12-31"];
   if(per==="d")return[ref,ref];
-  if(per==="w"){const dw=(r.getDay()+1)%7;const a=new Date(r);a.setDate(r.getDate()-dw);const b=new Date(a);b.setDate(a.getDate()+6);return[ds(a),ds(b)]}
+  if(per==="w"){const dw=(r.getDay()+6)%7;const a=new Date(r);a.setDate(r.getDate()-dw);const b=new Date(a);b.setDate(a.getDate()+6);return[ds(a),ds(b)]}
   return[ds(new Date(r.getFullYear(),r.getMonth(),1)),ds(new Date(r.getFullYear(),r.getMonth()+1,0))]}
 function labelFor(per,a,b){const f=x=>{const d=new Date(x+"T12:00");return DIAS[d.getDay()]+" "+d.getDate()+" "+MESES[d.getMonth()].slice(0,3)};
   if(per==="t")return"Todo el tiempo";
@@ -386,6 +388,7 @@ function renderInicio(){
   $("i-nav").style.display=IP==="t"?"none":"";
   const[a,b]=rangeFor(IP,IR);$("i-lbl").textContent=labelFor(IP,a,b);
   const inR=i=>i.fecha>=a&&i.fecha<=b,actual=IR===today()||(a<=today()&&today()<=b);
+  const hb=$("i-hoybtn");hb.style.display=actual||IP==="t"?"none":"";hb.textContent="Volver a "+{d:"hoy",w:"esta semana",m:"este mes"}[IP]||"";$("i-pick").value=IR;
   const gs=allItems().filter(inR),is=allIng().filter(inR);
   const tg=gs.reduce((x,y)=>x+y.monto,0),ti=is.reduce((x,y)=>x+y.monto,0),bal=ti-tg;
   const nom={d:actual?"hoy":"ese día",w:actual?"esta semana":"esa semana",m:actual?"este mes":"ese mes",t:"en total"}[IP];
@@ -408,6 +411,8 @@ function renderInicio(){
   bindRows($("i-ult"));
 }
 $("i-per").querySelectorAll("button").forEach(b=>b.onclick=()=>{IP=b.dataset.p;IR=today();renderInicio()});
+$("i-hoybtn").onclick=()=>{IR=today();renderInicio()};
+$("i-pick").onchange=()=>{if($("i-pick").value){IR=$("i-pick").value;renderInicio()}};
 $("i-prev").onclick=()=>{IR=moveRef(IP,IR,-1);renderInicio()};$("i-next").onclick=()=>{IR=moveRef(IP,IR,1);renderInicio()};
 function fillCatSelect(sel){const v=sel.value;sel.innerHTML='<option value="">Todas</option>'+S.cfg.cats.map(c=>`<option value="${esc(c.n)}">${esc(c.e+" "+c.n)}</option>`).join("");sel.value=v}
 const H={per:"m",ref:null,tp:"",sel:new Set(),open:false};
@@ -656,7 +661,7 @@ document.addEventListener("visibilitychange",()=>{if(document.hidden&&getPin()&&
 if(getPin())lkShow("open");
 
 /* ---------- actualización automática ---------- */
-const VER="v8";
+const VER="v9";
 async function checkUpdate(){try{const r=await fetch("./index.html?t="+Date.now(),{cache:"no-store"});const t=await r.text();const m=t.match(/const VER="(v\d+)"/);
   if(m&&m[1]!==VER&&!$("sheet-bg").classList.contains("on")&&view!=="agregar"){toast("Actualizando a "+m[1]+"…");setTimeout(()=>location.replace("./?v="+m[1]),800)}}catch(e){}}
 setTimeout(checkUpdate,1500);
