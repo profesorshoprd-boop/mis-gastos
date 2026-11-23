@@ -131,7 +131,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
 <body>
 <div class="app">
   <header>
-    <h1>Mis <span>Gastos</span> <small style="font-size:11px;color:var(--muted);font-weight:600">v5</small></h1>
+    <h1>Mis <span>Gastos</span> <small style="font-size:11px;color:var(--muted);font-weight:600">v6</small></h1>
     <div class="sync" id="sync">Cargando…</div>
   </header>
   <div class="notice" id="notice"></div>
@@ -140,21 +140,26 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
 
   <!-- INICIO -->
   <section class="view" id="v-inicio">
+    <div class="card" style="padding:12px">
+      <div class="seg" id="i-per" style="margin-bottom:10px"><button data-p="d">Diario</button><button data-p="w" class="on">Semanal</button><button data-p="m">Mensual</button><button data-p="t">Todo</button></div>
+      <div class="pnav" id="i-nav"><button id="i-prev" aria-label="Anterior">‹</button><div id="i-lbl"></div><button id="i-next" aria-label="Siguiente">›</button></div>
+    </div>
     <div class="card">
-      <div class="lbl">Gastado este mes</div>
-      <div class="big xl" id="i-mes">RD$0</div>
-      <div class="sub" id="i-pres"></div>
+      <div class="lbl" id="i-limpiolbl">Te queda limpio esta semana</div>
+      <div class="big xl" id="i-limpio">RD$0</div>
+      <div class="sub" id="i-limpiosub">ingresos − gastos</div>
       <div class="bar" id="i-presbar" style="display:none"><i></i></div>
+      <div class="sub" id="i-pres"></div>
     </div>
     <div class="grid2">
-      <div class="card"><div class="lbl">Hoy</div><div class="big" id="i-hoy">RD$0</div><div class="sub" id="i-hoyn"></div></div>
+      <div class="card"><div class="lbl">Ingresos</div><div class="big pos" id="i-ing">RD$0</div><div class="sub" id="i-ingn"></div></div>
+      <div class="card"><div class="lbl">Gastos</div><div class="big" id="i-gas">RD$0</div><div class="sub" id="i-gasn"></div></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="lbl">Gastado hoy</div><div class="big" id="i-hoy">RD$0</div><div class="sub" id="i-hoyn"></div></div>
       <div class="card"><div class="lbl">% Innecesario</div><div class="big" id="i-inn">0%</div><div class="sub" id="i-innm"></div></div>
     </div>
-    <div class="grid2">
-      <div class="card"><div class="lbl">Ingresos del mes</div><div class="big pos" id="i-ing">RD$0</div><div class="sub" id="i-ingn"></div></div>
-      <div class="card"><div class="lbl">Balance del mes</div><div class="big" id="i-bal">RD$0</div><div class="sub">ingresos − gastos</div></div>
-    </div>
-    <h2>Últimos movimientos</h2>
+    <h2 id="i-ulth">Movimientos</h2>
     <div class="card" id="i-ult"></div>
   </section>
 
@@ -361,36 +366,52 @@ function render(){
   if(view==="ajustes")renderAjustes();
   if(view==="agregar")renderCatsForm();
 }
+/* semana de sábado a viernes */
+const ds=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+function rangeFor(per,ref){const r=new Date(ref+"T12:00");
+  if(per==="t")return["0000-01-01","9999-12-31"];
+  if(per==="d")return[ref,ref];
+  if(per==="w"){const dw=(r.getDay()+1)%7;const a=new Date(r);a.setDate(r.getDate()-dw);const b=new Date(a);b.setDate(a.getDate()+6);return[ds(a),ds(b)]}
+  return[ds(new Date(r.getFullYear(),r.getMonth(),1)),ds(new Date(r.getFullYear(),r.getMonth()+1,0))]}
+function labelFor(per,a,b){const f=x=>{const d=new Date(x+"T12:00");return DIAS[d.getDay()]+" "+d.getDate()+" "+MESES[d.getMonth()].slice(0,3)};
+  if(per==="t")return"Todo el tiempo";
+  if(per==="d"){const d=new Date(a+"T12:00");const l=dayLabel(a);return(l==="Hoy"||l==="Ayer"?l+" · ":"")+DIAS[d.getDay()]+" "+d.getDate()+" "+MESES[d.getMonth()]+" "+d.getFullYear()}
+  if(per==="w")return f(a)+" – "+f(b);
+  const m=monthName(a.slice(0,7));return m.charAt(0).toUpperCase()+m.slice(1)}
+function moveRef(per,ref,n){const r=new Date(ref+"T12:00");if(per==="d")r.setDate(r.getDate()+n);else if(per==="w")r.setDate(r.getDate()+7*n);else{r.setDate(1);r.setMonth(r.getMonth()+n)}return ds(r)}
+let IP=(()=>{try{return localStorage.getItem("misgastos_iper")||"w"}catch(e){return"w"}})(),IR=null;
 function renderInicio(){
-  const m=curMonth(),its=itemsOf(m),t=today();
-  const tot=its.reduce((a,b)=>a+b.monto,0);
-  const hoy=its.filter(i=>i.fecha===t);const th=hoy.reduce((a,b)=>a+b.monto,0);
-  const inn=its.filter(i=>i.inn).reduce((a,b)=>a+b.monto,0);
-  $("i-mes").textContent=fmt(tot);
+  if(!IR)IR=today();
+  $("i-per").querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.p===IP));
+  $("i-nav").style.display=IP==="t"?"none":"";
+  const[a,b]=rangeFor(IP,IR);$("i-lbl").textContent=labelFor(IP,a,b);
+  const inR=i=>i.fecha>=a&&i.fecha<=b,actual=IR===today()||(a<=today()&&today()<=b);
+  const gs=allItems().filter(inR),is=allIng().filter(inR);
+  const tg=gs.reduce((x,y)=>x+y.monto,0),ti=is.reduce((x,y)=>x+y.monto,0),bal=ti-tg;
+  const nom={d:actual?"hoy":"ese día",w:actual?"esta semana":"esa semana",m:actual?"este mes":"ese mes",t:"en total"}[IP];
+  $("i-limpiolbl").textContent=(bal<0?"Gastaste de más ":"Te queda limpio ")+nom;
+  $("i-limpio").textContent=(bal<0?"−":"")+fmt(Math.abs(bal));$("i-limpio").className="big xl "+(bal<0?"neg":"pos");
+  $("i-limpiosub").textContent=`${fmt(ti)} de ingresos − ${fmt(tg)} de gastos`;
+  $("i-ing").textContent=fmt(ti);$("i-ingn").textContent=is.length+(is.length===1?" ingreso":" ingresos");
+  $("i-gas").textContent=fmt(tg);$("i-gasn").textContent=gs.length+(gs.length===1?" gasto":" gastos");
+  const t=today(),hoy=allItems().filter(i=>i.fecha===t),th=hoy.reduce((x,y)=>x+y.monto,0);
   $("i-hoy").textContent=fmt(th);$("i-hoyn").textContent=hoy.length+(hoy.length===1?" gasto":" gastos");
-  $("i-inn").textContent=(tot?Math.round(inn/tot*100):0)+"%";$("i-innm").textContent=fmt(inn)+" este mes";
+  const inn=gs.filter(i=>i.inn).reduce((x,y)=>x+y.monto,0);
+  $("i-inn").textContent=(tg?Math.round(inn/tg*100):0)+"%";$("i-innm").textContent=fmt(inn)+" "+nom;
   const p=+S.cfg.pres||0,bar=$("i-presbar");
-  if(p>0){const pct=Math.min(100,tot/p*100);bar.style.display="";bar.classList.toggle("bad",tot>p);bar.firstElementChild.style.width=pct+"%";
-    $("i-pres").textContent=tot>p?`Te pasaste ${fmt(tot-p)} del presupuesto de ${fmt(p)}`:`Te quedan ${fmt(p-tot)} de ${fmt(p)} · ${monthName(m)}`}
-  else{bar.style.display="none";$("i-pres").textContent=monthName(m)}
-  const ing=ingOf(m),ti=ing.reduce((a,b)=>a+b.monto,0),bal=ti-tot;
-  $("i-ing").textContent=fmt(ti);$("i-ingn").textContent=ing.length+(ing.length===1?" ingreso":" ingresos");
-  $("i-bal").textContent=(bal<0?"−":"")+fmt(Math.abs(bal));$("i-bal").className="big "+(bal<0?"neg":"pos");
-  const ult=allItems().concat(allIng().map(i=>Object.assign({_i:1},i))).sort((a,b)=>(b.fecha+b.ts).localeCompare(a.fecha+a.ts)).slice(0,8);
-  $("i-ult").innerHTML=ult.length?ult.map(it=>anyRow(it).replace('<div class="t2">',`<div class="t2">${dayLabel(it.fecha)} · `)).join(""):'<div class="empty">Todavía no hay movimientos.<br>Toca <b>＋</b> para registrar un gasto o un ingreso.</div>';
+  if(p>0&&IP==="m"){bar.style.display="";bar.classList.toggle("bad",tg>p);bar.firstElementChild.style.width=Math.min(100,tg/p*100)+"%";
+    $("i-pres").textContent=tg>p?`Te pasaste ${fmt(tg-p)} del presupuesto de ${fmt(p)}`:`Te quedan ${fmt(p-tg)} del presupuesto de ${fmt(p)}`}
+  else{bar.style.display="none";$("i-pres").textContent=""}
+  const ult=gs.concat(is.map(i=>Object.assign({_i:1},i))).sort((x,y)=>(y.fecha+y.ts).localeCompare(x.fecha+x.ts));
+  $("i-ulth").textContent="Movimientos "+nom+(ult.length>10?" (últimos 10)":"");
+  $("i-ult").innerHTML=ult.length?ult.slice(0,10).map(it=>anyRow(it).replace('<div class="t2">',`<div class="t2">${dayLabel(it.fecha)} · `)).join(""):'<div class="empty">No hay movimientos '+nom+'.<br>Toca <b>＋</b> para registrar un gasto o un ingreso.</div>';
   bindRows($("i-ult"));
 }
+$("i-per").querySelectorAll("button").forEach(b=>b.onclick=()=>{IP=b.dataset.p;IR=today();try{localStorage.setItem("misgastos_iper",IP)}catch(e){}renderInicio()});
+$("i-prev").onclick=()=>{IR=moveRef(IP,IR,-1);renderInicio()};$("i-next").onclick=()=>{IR=moveRef(IP,IR,1);renderInicio()};
 function fillCatSelect(sel){const v=sel.value;sel.innerHTML='<option value="">Todas</option>'+S.cfg.cats.map(c=>`<option value="${esc(c.n)}">${esc(c.e+" "+c.n)}</option>`).join("");sel.value=v}
 const H={per:"m",ref:null,tp:"",sel:new Set(),open:false};
-const ds=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
-function hRange(){const r=new Date(H.ref+"T12:00");
-  if(H.per==="d")return[H.ref,H.ref];
-  if(H.per==="w"){const dw=(r.getDay()+6)%7;const a=new Date(r);a.setDate(r.getDate()-dw);const b=new Date(a);b.setDate(a.getDate()+6);return[ds(a),ds(b)]}
-  const a=new Date(r.getFullYear(),r.getMonth(),1),b=new Date(r.getFullYear(),r.getMonth()+1,0);return[ds(a),ds(b)]}
-function hLabel(a,b){const f=x=>{const d=new Date(x+"T12:00");return d.getDate()+" "+MESES[d.getMonth()].slice(0,3)};
-  if(H.per==="d"){const d=new Date(a+"T12:00");const l=dayLabel(a);return(l==="Hoy"||l==="Ayer"?l+" · ":"")+DIAS[d.getDay()]+" "+d.getDate()+" "+MESES[d.getMonth()]+" "+d.getFullYear()}
-  if(H.per==="w")return"Semana: "+f(a)+" – "+f(b);
-  const m=monthName(a.slice(0,7));return m.charAt(0).toUpperCase()+m.slice(1)}
+const hRange=()=>rangeFor(H.per,H.ref),hLabel=(a,b)=>(H.per==="w"?"Semana: ":"")+labelFor(H.per,a,b);
 function hMove(n){const r=new Date(H.ref+"T12:00");if(H.per==="d")r.setDate(r.getDate()+n);else if(H.per==="w")r.setDate(r.getDate()+7*n);else{r.setDate(1);r.setMonth(r.getMonth()+n)}H.ref=ds(r);renderHist()}
 function fillHFilter(){
   const otros=[...new Set(allIng().filter(i=>i.fuente==="Otros"&&i.otro).map(i=>i.otro))];
