@@ -132,7 +132,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc)}
 <body>
 <div class="app">
   <header>
-    <h1>Mis <span>Gastos</span> <small style="font-size:11px;color:var(--muted);font-weight:600">v9</small></h1>
+    <h1>Mis <span>Gastos</span> <small style="font-size:11px;color:var(--muted);font-weight:600">v10</small></h1>
     <div class="sync" id="sync">Cargando…</div>
   </header>
   <div class="notice" id="notice"></div>
@@ -304,7 +304,7 @@ const DEFAULT_CATS=[
  {n:"Teléfono",e:"📱",subs:["Recarga","Plan"]},
  {n:"Otros",e:"📦",subs:[]}
 ];
-const DEFAULT_FUENTES=["Saldo ATH","Retiro","Retiro QR","Cele","Otros"];
+const DEFAULT_FUENTES=["Saldo ATH","Retiro","Retiro QR","Zelle","Otros"];
 const S={db:null,uid:null,cfg:{cats:DEFAULT_CATS,pres:0,fuentes:DEFAULT_FUENTES.slice()},months:{},ing:{},ready:false,writable:true};
 const $=id=>document.getElementById(id);
 const fmt=n=>"RD$"+Math.round(n).toLocaleString("es-DO");
@@ -661,7 +661,7 @@ document.addEventListener("visibilitychange",()=>{if(document.hidden&&getPin()&&
 if(getPin())lkShow("open");
 
 /* ---------- actualización automática ---------- */
-const VER="v9";
+const VER="v10";
 async function checkUpdate(){try{const r=await fetch("./index.html?t="+Date.now(),{cache:"no-store"});const t=await r.text();const m=t.match(/const VER="(v\d+)"/);
   if(m&&m[1]!==VER&&!$("sheet-bg").classList.contains("on")&&view!=="agregar"){toast("Actualizando a "+m[1]+"…");setTimeout(()=>location.replace("./?v="+m[1]),800)}}catch(e){}}
 setTimeout(checkUpdate,1500);
@@ -670,6 +670,7 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden)checkUpdat
 /* ---------- boot ---------- */
 try{const d=JSON.parse(localStorage.getItem(KEY)||"null");if(d){if(d.cfg&&Array.isArray(d.cfg.cats))S.cfg=d.cfg;if(d.months)S.months=d.months;if(d.ing)S.ing=d.ing}}catch(e){}
 if(!Array.isArray(S.cfg.fuentes))S.cfg.fuentes=DEFAULT_FUENTES.slice();
+if(!S.cfg.zelle){S.cfg.fuentes=S.cfg.fuentes.map(f=>f==="Cele"?"Zelle":f);Object.values(S.ing).forEach(a=>a.forEach(i=>{if(i.fuente==="Cele")i.fuente="Zelle"}));S.cfg.zelle=true;try{localStorage.setItem(KEY,JSON.stringify({cfg:S.cfg,months:S.months,ing:S.ing}))}catch(e){}}
 [{n:"Minutos",e:"📞",subs:[]},{n:"Perfil",e:"👤",subs:[]},{n:"Otros Ath",e:"🧾",subs:[]}].forEach(c=>{if(!S.cfg.v2&&!S.cfg.cats.some(x=>x.n.toLowerCase()===c.n.toLowerCase()))S.cfg.cats.push(c)});S.cfg.v2=true;
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 S.ready=true;$("loading").style.display="none";$("sync").textContent="✓ Guardado en este aparato";go("inicio");
